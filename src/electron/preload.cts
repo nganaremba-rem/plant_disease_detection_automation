@@ -6,14 +6,30 @@ contextBridge.exposeInMainWorld("versions", {
 } satisfies Window["versions"]);
 
 contextBridge.exposeInMainWorld("electron", {
-  startMonitoring: () => ipcRenderer.invoke("startMonitoring"),
-  stoppedMonitoring: (callback: () => void) =>
-    ipcRenderer.on("stoppedMonitoring", () => callback()),
-  processingStatus: (callback: (status: boolean) => void) =>
-    ipcRenderer.on("processingStatus", (_, status) => callback(status)),
+  startMonitoring: (cronTimes: string[]) => {
+    ipcRenderer.invoke("startMonitoring", cronTimes);
+  },
+  stopMonitoring: () => {
+    ipcRenderer.invoke("stopMonitoring");
+  },
+  stoppedMonitoring: (callback: () => void) => {
+    ipcRenderer.on("stoppedMonitoring", () => callback());
+  },
+  processingStatus: (callback: (status: boolean) => void) => {
+    ipcRenderer.on("processingStatus", (_, status) => callback(status));
+  },
   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   processComplete: (callback: (results: any) => void) => {
-    ipcRenderer.on("process-complete", (_, results) => callback(results));
+    ipcRenderer.on("processComplete", (_, results) => callback(results));
+  },
+  timeScheduled: (callback: (time: string[]) => void) => {
+    ipcRenderer.on("timeScheduled", (_, time) => callback(time));
+  },
+  openExternal: (url: string) => {
+    ipcRenderer.invoke("openExternal", url);
+  },
+  errorReport: (callback: (error: string) => void) => {
+    ipcRenderer.on("errorReport", (_, error) => callback(error));
   },
 } satisfies Window["electron"]);
 

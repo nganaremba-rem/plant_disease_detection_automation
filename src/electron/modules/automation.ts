@@ -1,23 +1,31 @@
-import robot from "robotjs";
-import { exec } from "node:child_process";
-import fs from "fs-extra";
-import prompt from "electron-prompt";
-import trash from "trash";
-import path from "node:path";
 import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
-import axios from "axios";
-import { CameraAndFarmData } from "../constants/constants.js";
-import { sendMail } from "./sendMail.js";
+import prompt from "electron-prompt";
+import fs from "fs-extra";
+import { exec } from "node:child_process";
+import path from "node:path";
+import robot from "robotjs";
+import trash from "trash";
+import { ENDPOINTS, directory, mailConfig } from "../config/config.js";
+import { CameraAndFarmData, EVENTS, Platform } from "../constants/constants.js";
+import { AxiosInstance } from "../utils/api.js";
+import { sendMailApiRequest } from "./sendMail.js";
 
 export const launchApp = (pathOfApp: string) => {
-  if (process.platform === "win32") {
+  if (process.platform === Platform.windows) {
     exec(`start ${pathOfApp}`);
-  } else if (process.platform === "darwin") {
+  } else if (process.platform === Platform.mac) {
     exec(`open ${pathOfApp}`);
-  } else {
+  } else if (process.platform === Platform.linux) {
     exec(`xdg-open ${pathOfApp}`);
   }
+};
+
+export const checkTrueCloudInstallation = () => {
+  const truecloudPath = "D:\\Users\\TVWall\\TRUECLOUD\\TVWall.exe";
+  const exists = fs.existsSync(truecloudPath);
+  console.log("Installation exists:", exists);
+  return exists;
 };
 
 export const getMousePosition = () => {
@@ -153,8 +161,7 @@ export const getLatestBmp = async (dir: string) => {
 };
 
 export const uploadImage = async (
-  imagePath: string,
-  apiUrl: string
+  imagePath: string
 ): Promise<ClassificationResults | undefined> => {
   try {
     if (!imagePath) {
@@ -168,12 +175,16 @@ export const uploadImage = async (
       path.basename(imagePath)
     );
 
-    const response = await axios.post<ClassificationResults>(apiUrl, formData, {
-      headers: {
-        accept: "application/json",
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    const response = await AxiosInstance.post<ClassificationResults>(
+      ENDPOINTS.CLASSIFY,
+      formData,
+      {
+        headers: {
+          accept: "application/json",
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
 
     console.log("API Response:", response.data);
     return response.data; // Return the API response
@@ -187,9 +198,6 @@ export const uploadImage = async (
   }
 };
 
-const directory = "D:\\Users\\TVWall\\TRUECLOUD\\download\\";
-const apiUrl = "http://localhost:8000/classify/";
-
 export const processImage = async (mainWindow: BrowserWindow) => {
   try {
     const subfolders = (await fs.readdir(directory, { withFileTypes: true }))
@@ -202,7 +210,7 @@ export const processImage = async (mainWindow: BrowserWindow) => {
       const latestBmp = await getLatestBmp(subfolder);
       if (latestBmp) {
         console.log(`Latest BMP in ${subfolder}: ${latestBmp}`);
-        const apiResponse = await uploadImage(latestBmp, apiUrl);
+        const apiResponse = await uploadImage(latestBmp);
         console.log("API Response:", apiResponse);
 
         if (!apiResponse) {
@@ -255,12 +263,12 @@ export const processImage = async (mainWindow: BrowserWindow) => {
 
     // if any result has hasDisease true, send mail
     if (results.some((result) => result.hasDisease)) {
-      sendMail("nganaremba@gmail.com", "Plant Disease Alert", results);
+      sendMailApiRequest(mailConfig.mailTo, results);
     }
 
     console.log("Results:", results);
-    mainWindow.webContents.send("process-complete", results);
-    mainWindow.webContents.send("processingStatus", false);
+    mainWindow.webContents.send(EVENTS.PROCESSING_STATUS, false);
+    mainWindow.webContents.send(EVENTS.PROCESS_COMPLETE, results);
     // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   } catch (error: any) {
     console.error("Error processing images:", error);

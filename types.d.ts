@@ -12,11 +12,15 @@ interface Window {
     chrome: () => string;
   };
   electron: {
-    startMonitoring: () => void;
+    startMonitoring: (cronTimes: string[]) => void;
+    stopMonitoring: () => void;
     stoppedMonitoring: (callback: () => void) => void;
     // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     processComplete: (callback: (results: any) => void) => void;
     processingStatus: (callback: (status: boolean) => void) => void;
+    timeScheduled: (callback: (time: string[]) => void) => void;
+    openExternal: (url: string) => void;
+    errorReport: (callback: (error: string) => void) => void;
   };
 }
 
