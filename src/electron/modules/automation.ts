@@ -198,11 +198,22 @@ export const uploadImage = async (
   }
 };
 
-export const processImage = async (mainWindow: BrowserWindow) => {
+export const processImage = async (
+  mainWindow: BrowserWindow,
+  unavailableCamerasIndex: number[]
+) => {
   try {
     const subfolders = (await fs.readdir(directory, { withFileTypes: true }))
       .filter((dirent) => dirent.isDirectory())
-      .map((dirent) => path.join(directory, dirent.name));
+      .map((dirent) => path.join(directory, dirent.name))
+      .sort((a, b) => {
+        // Sort synchronously using sync fs.statSync instead of async fs.stat
+        const statA = fs.statSync(a);
+        const statB = fs.statSync(b);
+        return statB.mtime.getTime() - statA.mtime.getTime();
+      });
+
+    subfolders.length = subfolders.length - unavailableCamerasIndex.length;
 
     const results: ResultsForUI[] = [];
 
@@ -226,10 +237,85 @@ export const processImage = async (mainWindow: BrowserWindow) => {
           (result) => result.label !== "healthy"
         );
 
-        const cameraNumber = subfolders.indexOf(subfolder) + 1;
+        /*
+       unavailableCamerasIndex = [0, 10, 3]
+            {
+              subfolder index 0: camera 16
+              subfolder index 1: camera 15
+              subfolder index 2: camera 14
+              subfolder index 3: camera 13
+              subfolder index 4: camera 12
+              subfolder index 5: camera 10 // since camera 11 (index 10) is unavailable, skip from 11 to 10
+              subfolder index 6: camera 9
+              subfolder index 7: camera 8
+              subfolder index 8: camera 7
+              subfolder index 9: camera 6
+              subfolder index 10: camera 5 
+              subfolder index 11: camera 3 // since camera 4 (index 3) is unavailable, skip from 4 to 2
+              subfolder index 12: camera 2 // since camera 1 (index 0) is unavailable, this maps to camera 2
+            }
+       */
+
+        let cameraToFolderIndexMap = Array.from(
+          {
+            length: 16,
+          },
+          (_, i) => i
+        )
+          .reverse()
+          .map((val, index) => ({
+            camIndex: val,
+            folderIndex: index,
+          }));
+
+        console.log("Invalid camera indexes:", unavailableCamerasIndex);
+
+        for (const invalidCamIndex of unavailableCamerasIndex) {
+          const withoutInvalid = cameraToFolderIndexMap.filter(
+            (item) => invalidCamIndex !== item.camIndex
+          );
+
+          const final = withoutInvalid.map((item, idx) => ({
+            ...item,
+            folderIndex: idx,
+          }));
+
+          cameraToFolderIndexMap = final;
+        }
+
+        console.log("Camera to folder index map:", cameraToFolderIndexMap);
+
+        const folderIndex = subfolders.indexOf(subfolder);
+        console.log("Folder index:", folderIndex);
+        const cameraIndex = cameraToFolderIndexMap.find(
+          (item) => item.folderIndex === folderIndex
+        )?.camIndex;
+
+        console.log("Camera index:", cameraIndex);
+
+        if (cameraIndex === undefined) {
+          console.log("Camera index not found");
+          return;
+        }
+
+        const cameraNumber = cameraIndex + 1;
+        console.log("Camera number:", cameraNumber);
+
+        if (!cameraNumber) {
+          console.log("Camera number not found");
+          return;
+        }
+
         const cameraData = CameraAndFarmData.find(
           (camera) => camera.camera === cameraNumber
         );
+
+        if (!cameraData) {
+          console.log("Camera data not found");
+          return;
+        }
+
+        console.log("Camera data:", cameraData);
 
         const result: ResultsForUI = {
           folder: subfolder,
@@ -261,14 +347,17 @@ export const processImage = async (mainWindow: BrowserWindow) => {
       }
     }
 
+    // since the latest new folder is the first one, we need to reverse the order here again
+    const resultsForUIAndMail = results.toReversed();
+
     // if any result has hasDisease true, send mail
-    if (results.some((result) => result.hasDisease)) {
-      sendMailApiRequest(mailConfig.mailTo, results);
+    if (resultsForUIAndMail.some((result) => result.hasDisease)) {
+      sendMailApiRequest(mailConfig.mailTo, resultsForUIAndMail);
     }
 
-    console.log("Results:", results);
+    // console.log("Results:", resultsForUIAndMail);
     mainWindow.webContents.send(EVENTS.PROCESSING_STATUS, false);
-    mainWindow.webContents.send(EVENTS.PROCESS_COMPLETE, results);
+    mainWindow.webContents.send(EVENTS.PROCESS_COMPLETE, resultsForUIAndMail);
     // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   } catch (error: any) {
     console.error("Error processing images:", error);

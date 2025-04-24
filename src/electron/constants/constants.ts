@@ -6,139 +6,403 @@ export const PIXEL_COLORS = {
   CAM_VIDEO_NOT_ON_COLOR_2: "000000",
 };
 
+export const SECONDS_TO_WAIT = 20 * 1000; // 20 seconds
+
 // Function to calculate scaled positions based on screen dimensions
 function calculateScaledPosition(
   x: number,
   y: number,
-  baseWidth = 1366,
-  baseHeight = 768,
   screenWidth?: number,
-  screenHeight?: number
+  screenHeight?: number,
+  baseWidth = 1920,
+  baseHeight = 1080
 ) {
+  if (!screenWidth || !screenHeight) {
+    throw new Error("Screen width and height are required");
+  }
+  // get the screen ratio
+  const screenRatio = screenWidth / screenHeight;
+  // get the ratio in 16/9 instead of decimal
+
+  const baseRatio = baseWidth / baseHeight;
+  if (screenRatio !== baseRatio) {
+    throw new Error(
+      `Screen ratio should be ${baseRatio} but is ${screenRatio}`
+    );
+  }
+
   return {
     X: Math.round((x / baseWidth) * (screenWidth ?? baseWidth)),
     Y: Math.round((y / baseHeight) * (screenHeight ?? baseHeight)),
   };
 }
 
-// Base positions for 1366x768 resolution
-const BASE_POSITIONS = {
-  LOGIN_BUTTON: { X: 633, Y: 485 },
-  CAM_1: { X: 209, Y: 135 },
-  CAM_2: { X: 210, Y: 177 },
-  CAM_1_VIDEO_BOX: { X: 402, Y: 167 },
-  CAPTURE_BUTTON: { X: 646, Y: 700 },
-  CAM_2_VIDEO_BOX: { X: 669, Y: 170 },
-  CLOSE_BUTTON: { X: 1332, Y: 11 },
-};
-
-// Dynamic screen positions that scale with screen size
-export const SCREEN_POSITIONS = {
-  LOGIN_BUTTON: (width: number, height: number) =>
-    calculateScaledPosition(
-      BASE_POSITIONS.LOGIN_BUTTON.X,
-      BASE_POSITIONS.LOGIN_BUTTON.Y,
-      width,
-      height
-    ),
-  CAM_1: (width: number, height: number) =>
-    calculateScaledPosition(
-      BASE_POSITIONS.CAM_1.X,
-      BASE_POSITIONS.CAM_1.Y,
-      width,
-      height
-    ),
-  CAM_2: (width: number, height: number) =>
-    calculateScaledPosition(
-      BASE_POSITIONS.CAM_2.X,
-      BASE_POSITIONS.CAM_2.Y,
-      width,
-      height
-    ),
-  CAM_1_VIDEO_BOX: (width: number, height: number) =>
-    calculateScaledPosition(
-      BASE_POSITIONS.CAM_1_VIDEO_BOX.X,
-      BASE_POSITIONS.CAM_1_VIDEO_BOX.Y,
-      width,
-      height
-    ),
-  CAPTURE_BUTTON: (width: number, height: number) =>
-    calculateScaledPosition(
-      BASE_POSITIONS.CAPTURE_BUTTON.X,
-      BASE_POSITIONS.CAPTURE_BUTTON.Y,
-      width,
-      height
-    ),
-  CAM_2_VIDEO_BOX: (width: number, height: number) =>
-    calculateScaledPosition(
-      BASE_POSITIONS.CAM_2_VIDEO_BOX.X,
-      BASE_POSITIONS.CAM_2_VIDEO_BOX.Y,
-      width,
-      height
-    ),
-  CLOSE_BUTTON: (width: number, height: number) =>
-    calculateScaledPosition(
-      BASE_POSITIONS.CLOSE_BUTTON.X,
-      BASE_POSITIONS.CLOSE_BUTTON.Y,
-      width,
-      height
-    ),
+// For screen size 1920x1080
+const SCREEN_POSITIONS = {
+  LOGIN_BUTTON: {
+    x: 914,
+    y: 645,
+  },
+  CLOSE_CAPTURE_PREVIEW_BUTTON: {
+    x: 660,
+    y: 792,
+  },
+  CAM_ICON_COORDINATES: [
+    {
+      // CAM 1 ready coordinates
+      x: 67,
+      y: 134,
+    },
+    {
+      // CAM 2 ready coordinates
+      x: 67,
+      y: 174,
+    },
+    {
+      // CAM 3 ready coordinates
+      x: 67,
+      y: 214,
+    },
+    {
+      // CAM 4 ready coordinates
+      x: 67,
+      y: 254,
+    },
+    {
+      // CAM 5 ready coordinates
+      x: 67,
+      y: 294,
+    },
+    {
+      // CAM 6 ready coordinates
+      x: 67,
+      y: 334,
+    },
+    {
+      // CAM 7 ready coordinates
+      x: 67,
+      y: 374,
+    },
+    {
+      // CAM 8 ready coordinates
+      x: 67,
+      y: 414,
+    },
+    {
+      // CAM 9 ready coordinates
+      x: 67,
+      y: 454,
+    },
+    {
+      // CAM 10 ready coordinates
+      x: 67,
+      y: 494,
+    },
+    {
+      // CAM 11 ready coordinates
+      x: 67,
+      y: 534,
+    },
+    {
+      // CAM 12 ready coordinates
+      x: 67,
+      y: 574,
+    },
+    {
+      // CAM 13 ready coordinates
+      x: 67,
+      y: 614,
+    },
+    {
+      // CAM 14 ready coordinates
+      x: 67,
+      y: 547,
+    },
+    {
+      // CAM 15 ready coordinates
+      x: 67,
+      y: 589,
+    },
+    {
+      // CAM 16 ready coordinates
+      x: 67,
+      y: 631,
+    },
+  ],
+  CAM_TOGGLE_ON_OFF_BUTTON_COORDINATES: [
+    {
+      // CAM 1 toggle on off button coordinates
+      x: 210,
+      y: 137,
+    },
+    {
+      // CAM 2 toggle on off button coordinates
+      x: 210,
+      y: 177,
+    },
+    {
+      // CAM 3 toggle on off button coordinates
+      x: 210,
+      y: 217,
+    },
+    {
+      // CAM 4 toggle on off button coordinates
+      x: 210,
+      y: 257,
+    },
+    {
+      // CAM 5 toggle on off button coordinates
+      x: 210,
+      y: 297,
+    },
+    {
+      // CAM 6 toggle on off button coordinates
+      x: 210,
+      y: 337,
+    },
+    {
+      // CAM 7 toggle on off button coordinates
+      x: 210,
+      y: 377,
+    },
+    {
+      // CAM 8 toggle on off button coordinates
+      x: 210,
+      y: 417,
+    },
+    {
+      // CAM 9 toggle on off button coordinates
+      x: 210,
+      y: 457,
+    },
+    {
+      // CAM 10 toggle on off button coordinates
+      x: 210,
+      y: 497,
+    },
+    {
+      // CAM 11 toggle on off button coordinates
+      x: 210,
+      y: 537,
+    },
+    {
+      // CAM 12 toggle on off button coordinates
+      x: 210,
+      y: 577,
+    },
+    {
+      // CAM 13 toggle on off button coordinates
+      x: 210,
+      y: 617,
+    },
+    {
+      // CAM 14 toggle on off button coordinates
+      x: 210,
+      y: 550,
+    },
+    {
+      // CAM 15 toggle on off button coordinates
+      x: 210,
+      y: 590,
+    },
+    {
+      // CAM 16 toggle on off button coordinates
+      x: 210,
+      y: 630,
+    },
+  ],
+  CAM_VIDEO_BOX_COORDINATES: [
+    {
+      // CAM 1 video box coordinates
+      x: 470,
+      y: 209,
+    },
+    {
+      // CAM 2 video box coordinates
+      x: 887,
+      y: 209,
+    },
+    {
+      // CAM 3 video box coordinates
+      x: 1304,
+      y: 209,
+    },
+    {
+      // CAM 4 video box coordinates
+      x: 1721,
+      y: 209,
+    },
+    {
+      // CAM 5 video box coordinates
+      x: 470,
+      y: 432,
+    },
+    {
+      // CAM 6 video box coordinates
+      x: 887,
+      y: 432,
+    },
+    {
+      // CAM 7 video box coordinates
+      x: 1304,
+      y: 432,
+    },
+    {
+      // CAM 8 video box coordinates
+      x: 1721,
+      y: 432,
+    },
+    {
+      // CAM 9 video box coordinates
+      x: 470,
+      y: 655,
+    },
+    {
+      // CAM 10 video box coordinates
+      x: 887,
+      y: 655,
+    },
+    {
+      // CAM 11 video box coordinates
+      x: 1304,
+      y: 655,
+    },
+    {
+      // CAM 12 video box coordinates
+      x: 1721,
+      y: 655,
+    },
+    {
+      // CAM 13 video box coordinates
+      x: 470,
+      y: 878,
+    },
+    {
+      // CAM 14 video box coordinates
+      x: 887,
+      y: 878,
+    },
+    {
+      // CAM 15 video box coordinates
+      x: 1304,
+      y: 878,
+    },
+    {
+      // CAM 16 video box coordinates
+      x: 1721,
+      y: 878,
+    },
+  ],
+  CAPTURE_BUTTON: {
+    x: 648,
+    y: 1011,
+  },
+  CLOSE_BUTTON: {
+    x: 1896,
+    y: 8,
+  },
+  CAM_SCROLL_DOWN_BUTTON: {
+    x: 238,
+    y: 642,
+  },
+  CAM_SCROLL_UP_BUTTON: {
+    x: 238,
+    y: 95,
+  },
 };
 
 // Coordinates with color checks that use the scaled positions
-export const COORDINATES = {
+export const COORDINATES_WITH_COLORS = {
+  CLOSE_CAPTURE_PREVIEW_BUTTON: (width: number, height: number) => ({
+    ...calculateScaledPosition(
+      SCREEN_POSITIONS.CLOSE_CAPTURE_PREVIEW_BUTTON.x,
+      SCREEN_POSITIONS.CLOSE_CAPTURE_PREVIEW_BUTTON.y,
+      width,
+      height
+    ),
+    COLOR: PIXEL_COLORS.CAM_READY_COLOR,
+  }),
+  CAM_SCROLL_DOWN_BUTTON: (width: number, height: number) => ({
+    ...calculateScaledPosition(
+      SCREEN_POSITIONS.CAM_SCROLL_DOWN_BUTTON.x,
+      SCREEN_POSITIONS.CAM_SCROLL_DOWN_BUTTON.y,
+      width,
+      height
+    ),
+    COLOR: PIXEL_COLORS.CAM_READY_COLOR,
+  }),
+  CAM_SCROLL_UP_BUTTON: (width: number, height: number) => ({
+    ...calculateScaledPosition(
+      SCREEN_POSITIONS.CAM_SCROLL_UP_BUTTON.x,
+      SCREEN_POSITIONS.CAM_SCROLL_UP_BUTTON.y,
+      width,
+      height
+    ),
+    COLOR: PIXEL_COLORS.CAM_READY_COLOR,
+  }),
   LOGIN_READY_COORDINATES: (width: number, height: number) => ({
-    ...calculateScaledPosition(637, 487, width, height),
+    ...calculateScaledPosition(
+      SCREEN_POSITIONS.LOGIN_BUTTON.x,
+      SCREEN_POSITIONS.LOGIN_BUTTON.y,
+      width,
+      height
+    ),
     COLOR: PIXEL_COLORS.LOGIN_READY_COLOR,
   }),
-  CAM_1_READY_COORDINATES: (width: number, height: number) => ({
-    ...calculateScaledPosition(69, 135, width, height),
-    COLOR: PIXEL_COLORS.CAM_READY_COLOR,
-  }),
-  CAM_2_READY_COORDINATES: (width: number, height: number) => ({
-    ...calculateScaledPosition(69, 174, width, height),
-    COLOR: PIXEL_COLORS.CAM_READY_COLOR,
-  }),
-  CAM_1_NOT_READY_COORDINATES: (width: number, height: number) => ({
-    ...calculateScaledPosition(69, 135, width, height),
-    COLOR: PIXEL_COLORS.CAM_NOT_READY_COLOR,
-  }),
-  CAM_1_VIDEO_NOT_ON_COORDINATES: (width: number, height: number) => ({
+  CAPTURE_BUTTON: (width: number, height: number) => ({
     ...calculateScaledPosition(
-      SCREEN_POSITIONS.CAM_1_VIDEO_BOX(width, height).X,
-      SCREEN_POSITIONS.CAM_1_VIDEO_BOX(width, height).Y,
+      SCREEN_POSITIONS.CAPTURE_BUTTON.x,
+      SCREEN_POSITIONS.CAPTURE_BUTTON.y,
       width,
       height
     ),
-    COLOR: PIXEL_COLORS.CAM_VIDEO_NOT_ON_COLOR,
+    COLOR: PIXEL_COLORS.CAM_READY_COLOR, // TODO: change to capture button color
   }),
-  CAM_1_VIDEO_NOT_ON_COORDINATES_2: (width: number, height: number) => ({
+  CLOSE_BUTTON: (width: number, height: number) => ({
     ...calculateScaledPosition(
-      SCREEN_POSITIONS.CAM_1_VIDEO_BOX(width, height).X,
-      SCREEN_POSITIONS.CAM_1_VIDEO_BOX(width, height).Y,
+      SCREEN_POSITIONS.CLOSE_BUTTON.x,
+      SCREEN_POSITIONS.CLOSE_BUTTON.y,
       width,
       height
     ),
-    COLOR: PIXEL_COLORS.CAM_VIDEO_NOT_ON_COLOR_2,
+    COLOR: PIXEL_COLORS.CAM_READY_COLOR, // TODO: change to close button color
   }),
-  CAM_2_VIDEO_NOT_ON_COORDINATES: (width: number, height: number) => ({
-    ...calculateScaledPosition(
-      SCREEN_POSITIONS.CAM_2_VIDEO_BOX(width, height).X,
-      SCREEN_POSITIONS.CAM_2_VIDEO_BOX(width, height).Y,
-      width,
-      height
-    ),
-    COLOR: PIXEL_COLORS.CAM_VIDEO_NOT_ON_COLOR,
-  }),
-  CAM_2_VIDEO_NOT_ON_COORDINATES_2: (width: number, height: number) => ({
-    ...calculateScaledPosition(
-      SCREEN_POSITIONS.CAM_2_VIDEO_BOX(width, height).X,
-      SCREEN_POSITIONS.CAM_2_VIDEO_BOX(width, height).Y,
-      width,
-      height
-    ),
-    COLOR: PIXEL_COLORS.CAM_VIDEO_NOT_ON_COLOR_2,
-  }),
+  CAM_TOGGLE_ON_OFF_BUTTON_COORDINATES: (width: number, height: number) => [
+    ...SCREEN_POSITIONS.CAM_TOGGLE_ON_OFF_BUTTON_COORDINATES.map((coord) => ({
+      ...calculateScaledPosition(coord.x, coord.y, width, height),
+      COLOR: PIXEL_COLORS.CAM_READY_COLOR, // TODO: change to toggle on off button color
+    })),
+  ],
+  CAM_READY_COORDINATES: (width: number, height: number) => [
+    ...SCREEN_POSITIONS.CAM_ICON_COORDINATES.map((coord) => ({
+      ...calculateScaledPosition(coord.x, coord.y, width, height),
+      COLOR: PIXEL_COLORS.CAM_READY_COLOR,
+    })),
+  ],
+  CAM_NOT_READY_COORDINATES: (width: number, height: number) => [
+    ...SCREEN_POSITIONS.CAM_ICON_COORDINATES.map((coord) => ({
+      ...calculateScaledPosition(coord.x, coord.y, width, height),
+      COLOR: PIXEL_COLORS.CAM_NOT_READY_COLOR,
+    })),
+  ],
+  CAM_VIDEO_NOT_ON_COORDINATES: (width: number, height: number) => [
+    ...SCREEN_POSITIONS.CAM_VIDEO_BOX_COORDINATES.map((coord) => ({
+      ...calculateScaledPosition(coord.x, coord.y, width, height),
+      COLOR: PIXEL_COLORS.CAM_VIDEO_NOT_ON_COLOR,
+    })),
+  ],
+  CAM_VIDEO_NOT_ON_COORDINATES_2: (width: number, height: number) => [
+    ...SCREEN_POSITIONS.CAM_VIDEO_BOX_COORDINATES.map((coord) => ({
+      ...calculateScaledPosition(coord.x, coord.y, width, height),
+      COLOR: PIXEL_COLORS.CAM_VIDEO_NOT_ON_COLOR_2,
+    })),
+  ],
+  CAM_VIDEO_BOX_COORDINATES: (width: number, height: number) => [
+    ...SCREEN_POSITIONS.CAM_VIDEO_BOX_COORDINATES.map((coord) => ({
+      ...calculateScaledPosition(coord.x, coord.y, width, height),
+      COLOR: PIXEL_COLORS.CAM_VIDEO_NOT_ON_COLOR,
+    })),
+  ],
 };
 
 export const CameraAndFarmData = [
@@ -208,8 +472,8 @@ export const CameraAndFarmData = [
   {
     camera: 10,
     farmer: "S.S.ROY",
-    chilliName: "KING HOT",
-    chilliCode: "1102",
+    chilliName: "RED HOT",
+    chilliCode: "2090",
     bedNumber: 2,
   },
   {

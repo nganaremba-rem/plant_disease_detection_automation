@@ -19,10 +19,10 @@ import {
 } from "./modules/automation.js";
 import cron from "node-cron";
 import {
-  COORDINATES,
+  COORDINATES_WITH_COLORS,
   EVENTS,
   PIXEL_COLORS,
-  SCREEN_POSITIONS,
+  SECONDS_TO_WAIT,
 } from "./constants/constants.js";
 
 import dotenv from "dotenv";
@@ -63,11 +63,7 @@ const createWindow = () => {
 
 function minimizeAppToTray(mainWindow: BrowserWindow) {
   // Create tray icon
-  const tray = new Tray(
-    process.env.NODE_ENV === "development"
-      ? path.join(app.getAppPath(), "public/icon.png")
-      : path.join(app.getAppPath(), "..", "public/icon.png")
-  );
+  const tray = new Tray(path.join(app.getAppPath(), "public/icon.png"));
 
   tray.on("click", () => {
     mainWindow.show();
@@ -156,12 +152,29 @@ app.whenReady().then(() => {
         "TrueCloud not found at D:\\Users\\TVWall\\TRUECLOUD\\TVWall.exe"
       );
     }
-  });
 
-  // Get primary display dimensions
-  const primaryDisplay = screen.getPrimaryDisplay();
-  const { width, height } = primaryDisplay.size;
-  console.log(`Screen dimensions: ${width}x${height}`);
+    // Get primary display dimensions
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width, height } = primaryDisplay.size;
+    console.log(`Screen dimensions: ${width}x${height}`);
+
+    if (width !== 1920 || height !== 1080) {
+      console.log("screen size does not match");
+
+      mainWindow.webContents.send(
+        EVENTS.ERROR,
+        "Screen resolution must be set to 1920x1080 with display scaling at 100%"
+      );
+    }
+
+    // get mouse position
+    // setInterval(() => {
+    //   const mouse = getMousePosition();
+    //   console.log(`Mouse X: ${mouse.x}, Y: ${mouse.y}`);
+    //   const color = getPixelColor(mouse.x, mouse.y);
+    //   console.log(`Color: ${color}`);
+    // }, 1000);
+  });
 
   // delete all files in the path
   // deleteFiles("D:\\Users\\TVWall\\TRUECLOUD\\download\\", mainWindow);
@@ -184,14 +197,6 @@ app.whenReady().then(() => {
     mainWindow.webContents.send(EVENTS.TIME_SCHEDULED, []);
   });
 
-  // get mouse position
-  // setInterval(() => {
-  //   const mouse = getMousePosition();
-  //   console.log(`Mouse X: ${mouse.x}, Y: ${mouse.y}`);
-  //   const color = getPixelColor(mouse.x, mouse.y);
-  //   console.log(`Color: ${color}`);
-  // }, 1000);
-
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
@@ -207,7 +212,8 @@ function isPositionReadyToBeClicked(
     Y: number;
     COLOR: string;
   },
-  shouldMatchColor = true
+  shouldMatchColor = true,
+  waitTime = 1000 * 60 * 1 // 1 minute
 ): Promise<boolean> {
   return new Promise((resolve, reject) => {
     let isReady = false;
@@ -216,9 +222,9 @@ function isPositionReadyToBeClicked(
         coordinatesWithColor.X,
         coordinatesWithColor.Y
       );
-      console.log(
-        `Comparing color: ${color} with ${coordinatesWithColor.COLOR}\nX: ${coordinatesWithColor.X}, Y: ${coordinatesWithColor.Y}`
-      );
+      // console.log(
+      //   `Comparing for X: ${coordinatesWithColor.X} and Y: ${coordinatesWithColor.Y} \nComparing color:   ${color} with ${coordinatesWithColor.COLOR}\nX: ${coordinatesWithColor.X}, Y: ${coordinatesWithColor.Y}`
+      // );
       if (
         (shouldMatchColor && color === coordinatesWithColor.COLOR) ||
         (!shouldMatchColor && color !== coordinatesWithColor.COLOR)
@@ -227,10 +233,11 @@ function isPositionReadyToBeClicked(
         clearInterval(interval);
         resolve(true);
       }
-    }, 1000);
+    }, 200);
     setTimeout(() => {
       resolve(isReady);
-    }, 60000); // Wait for 1 minute (60000ms) before resolving
+      clearInterval(interval);
+    }, waitTime);
   });
 }
 
@@ -269,28 +276,23 @@ function closeTrueCloudProcess(mainWindow: BrowserWindow) {
 async function startMonitoring(mainWindow: BrowserWindow) {
   closeTrueCloudProcess(mainWindow);
 
+  const unavailableCamerasIndex: number[] = [];
+
+  const { width, height } = screen.getPrimaryDisplay().size;
+
   // launch truecloud app
   launchApp("D:\\Users\\TVWall\\TRUECLOUD\\TVWall.exe");
 
   console.log("Checking if login is ready to be clicked");
   if (
     await isPositionReadyToBeClicked(
-      COORDINATES.LOGIN_READY_COORDINATES(
-        screen.getPrimaryDisplay().size.width,
-        screen.getPrimaryDisplay().size.height
-      )
+      COORDINATES_WITH_COLORS.LOGIN_READY_COORDINATES(width, height)
     )
   ) {
     // click on Login button
     clickOnScreen(
-      SCREEN_POSITIONS.LOGIN_BUTTON(
-        screen.getPrimaryDisplay().size.width,
-        screen.getPrimaryDisplay().size.height
-      ).X,
-      SCREEN_POSITIONS.LOGIN_BUTTON(
-        screen.getPrimaryDisplay().size.width,
-        screen.getPrimaryDisplay().size.height
-      ).Y
+      COORDINATES_WITH_COLORS.LOGIN_READY_COORDINATES(width, height).X,
+      COORDINATES_WITH_COLORS.LOGIN_READY_COORDINATES(width, height).Y
     );
     console.log("Login is ready to be clicked and clicked");
   } else {
@@ -298,161 +300,111 @@ async function startMonitoring(mainWindow: BrowserWindow) {
   }
 
   console.log("Checking if 1st camera is ready to be clicked");
-  // Turn on 1st camera
-  if (
-    await isPositionReadyToBeClicked(
-      COORDINATES.CAM_1_READY_COORDINATES(
-        screen.getPrimaryDisplay().size.width,
-        screen.getPrimaryDisplay().size.height
-      )
-    )
-  ) {
-    clickOnScreen(
-      SCREEN_POSITIONS.CAM_1(
-        screen.getPrimaryDisplay().size.width,
-        screen.getPrimaryDisplay().size.height
-      ).X,
-      SCREEN_POSITIONS.CAM_1(
-        screen.getPrimaryDisplay().size.width,
-        screen.getPrimaryDisplay().size.height
-      ).Y
-    );
-  } else {
-    return;
+
+  for (const [
+    index,
+    { X, Y, COLOR },
+  ] of COORDINATES_WITH_COLORS.CAM_READY_COORDINATES(width, height).entries()) {
+    // when it reaches cam 13, click on the scroll down button
+    if (index === 13) {
+      clickOnScreen(
+        COORDINATES_WITH_COLORS.CAM_SCROLL_DOWN_BUTTON(width, height).X,
+        COORDINATES_WITH_COLORS.CAM_SCROLL_DOWN_BUTTON(width, height).Y
+      );
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    if (
+      await isPositionReadyToBeClicked({ X, Y, COLOR }, true, SECONDS_TO_WAIT)
+    ) {
+      clickOnScreen(
+        COORDINATES_WITH_COLORS.CAM_TOGGLE_ON_OFF_BUTTON_COORDINATES(
+          width,
+          height
+        )[index].X,
+        COORDINATES_WITH_COLORS.CAM_TOGGLE_ON_OFF_BUTTON_COORDINATES(
+          width,
+          height
+        )[index].Y
+      );
+      console.log(`Camera ${index + 1} is ready to be clicked and clicked`);
+    } else {
+      unavailableCamerasIndex.push(index);
+      console.log("Number of unavailable cameras:", unavailableCamerasIndex);
+    }
   }
 
-  console.log("Checking if 2nd camera is ready to be clicked");
-  // Turn on 2nd camera
-  if (
-    await isPositionReadyToBeClicked(
-      COORDINATES.CAM_2_READY_COORDINATES(
-        screen.getPrimaryDisplay().size.width,
-        screen.getPrimaryDisplay().size.height
-      )
-    )
-  ) {
-    clickOnScreen(
-      SCREEN_POSITIONS.CAM_2(
-        screen.getPrimaryDisplay().size.width,
-        screen.getPrimaryDisplay().size.height
-      ).X,
-      SCREEN_POSITIONS.CAM_2(
-        screen.getPrimaryDisplay().size.width,
-        screen.getPrimaryDisplay().size.height
-      ).Y
-    );
-    console.log("2nd camera is ready to be clicked and clicked");
-  } else {
-    return;
-  }
-
-  console.log("Checking if 1st camera video is not on");
-  // Click on 1st camera video
-  if (
-    (await isPositionReadyToBeClicked(
-      COORDINATES.CAM_1_VIDEO_NOT_ON_COORDINATES(
-        screen.getPrimaryDisplay().size.width,
-        screen.getPrimaryDisplay().size.height
-      ),
-      false
-    )) &&
-    (await isPositionReadyToBeClicked(
-      COORDINATES.CAM_1_VIDEO_NOT_ON_COORDINATES_2(
-        screen.getPrimaryDisplay().size.width,
-        screen.getPrimaryDisplay().size.height
-      ),
-      false
-    ))
-  ) {
-    console.log("1st camera video is not on and clicking on it");
-    clickOnScreen(
-      SCREEN_POSITIONS.CAM_1_VIDEO_BOX(
-        screen.getPrimaryDisplay().size.width,
-        screen.getPrimaryDisplay().size.height
-      ).X,
-      SCREEN_POSITIONS.CAM_1_VIDEO_BOX(
-        screen.getPrimaryDisplay().size.width,
-        screen.getPrimaryDisplay().size.height
-      ).Y
-    );
-  } else {
-    return;
-  }
-
-  // Click on capture button
-
-  console.log("Clicking on capture button");
+  // click on the scroll up button
   clickOnScreen(
-    SCREEN_POSITIONS.CAPTURE_BUTTON(
-      screen.getPrimaryDisplay().size.width,
-      screen.getPrimaryDisplay().size.height
-    ).X,
-    SCREEN_POSITIONS.CAPTURE_BUTTON(
-      screen.getPrimaryDisplay().size.width,
-      screen.getPrimaryDisplay().size.height
-    ).Y
+    COORDINATES_WITH_COLORS.CAM_SCROLL_UP_BUTTON(width, height).X,
+    COORDINATES_WITH_COLORS.CAM_SCROLL_UP_BUTTON(width, height).Y
   );
 
-  // Click on 2nd camera video
-  console.log("Checking if 2nd camera video is not on");
-  if (
-    (await isPositionReadyToBeClicked(
-      COORDINATES.CAM_2_VIDEO_NOT_ON_COORDINATES(
-        screen.getPrimaryDisplay().size.width,
-        screen.getPrimaryDisplay().size.height
-      ),
-      false
-    )) &&
-    (await isPositionReadyToBeClicked(
-      COORDINATES.CAM_2_VIDEO_NOT_ON_COORDINATES_2(
-        screen.getPrimaryDisplay().size.width,
-        screen.getPrimaryDisplay().size.height
-      ),
-      false
-    ))
-  ) {
-    console.log("2nd camera video is not on and clicking on it");
-    clickOnScreen(
-      SCREEN_POSITIONS.CAM_2_VIDEO_BOX(
-        screen.getPrimaryDisplay().size.width,
-        screen.getPrimaryDisplay().size.height
-      ).X,
-      SCREEN_POSITIONS.CAM_2_VIDEO_BOX(
-        screen.getPrimaryDisplay().size.width,
-        screen.getPrimaryDisplay().size.height
-      ).Y
-    );
-  } else {
-    return;
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
+  let numberOfUnavailableCameras = 0;
+  for (const [index, _] of COORDINATES_WITH_COLORS.CAM_VIDEO_NOT_ON_COORDINATES(
+    width,
+    height
+  ).entries()) {
+    if (unavailableCamerasIndex.includes(index)) {
+      numberOfUnavailableCameras++;
+      console.log(`Camera ${index + 1} is unavailable`);
+      continue;
+    }
+
+    console.log("Number of unavailable cameras:", numberOfUnavailableCameras);
+
+    if (
+      (await isPositionReadyToBeClicked(
+        COORDINATES_WITH_COLORS.CAM_VIDEO_NOT_ON_COORDINATES(width, height)[
+          index - numberOfUnavailableCameras
+        ],
+        false,
+        SECONDS_TO_WAIT
+      )) &&
+      (await isPositionReadyToBeClicked(
+        COORDINATES_WITH_COLORS.CAM_VIDEO_NOT_ON_COORDINATES_2(width, height)[
+          index - numberOfUnavailableCameras
+        ],
+        false,
+        SECONDS_TO_WAIT
+      ))
+    ) {
+      clickOnScreen(
+        COORDINATES_WITH_COLORS.CAM_VIDEO_BOX_COORDINATES(width, height)[
+          index - numberOfUnavailableCameras
+        ].X,
+        COORDINATES_WITH_COLORS.CAM_VIDEO_BOX_COORDINATES(width, height)[
+          index - numberOfUnavailableCameras
+        ].Y
+      );
+      console.log(`Camera ${index + 1} video is not on and clicked`);
+      clickOnScreen(
+        COORDINATES_WITH_COLORS.CAPTURE_BUTTON(width, height).X,
+        COORDINATES_WITH_COLORS.CAPTURE_BUTTON(width, height).Y
+      );
+      clickOnScreen(
+        COORDINATES_WITH_COLORS.CLOSE_CAPTURE_PREVIEW_BUTTON(width, height).X,
+        COORDINATES_WITH_COLORS.CLOSE_CAPTURE_PREVIEW_BUTTON(width, height).Y
+      );
+    }
   }
 
-  // Click on capture button
-  console.log("Clicking on capture button");
+  // click on the scroll up button
   clickOnScreen(
-    SCREEN_POSITIONS.CAPTURE_BUTTON(
-      screen.getPrimaryDisplay().size.width,
-      screen.getPrimaryDisplay().size.height
-    ).X,
-    SCREEN_POSITIONS.CAPTURE_BUTTON(
-      screen.getPrimaryDisplay().size.width,
-      screen.getPrimaryDisplay().size.height
-    ).Y
+    COORDINATES_WITH_COLORS.CAM_SCROLL_UP_BUTTON(width, height).X,
+    COORDINATES_WITH_COLORS.CAM_SCROLL_UP_BUTTON(width, height).Y
   );
 
   // close the app
   console.log("Closing the app");
   clickOnScreen(
-    SCREEN_POSITIONS.CLOSE_BUTTON(
-      screen.getPrimaryDisplay().size.width,
-      screen.getPrimaryDisplay().size.height
-    ).X,
-    SCREEN_POSITIONS.CLOSE_BUTTON(
-      screen.getPrimaryDisplay().size.width,
-      screen.getPrimaryDisplay().size.height
-    ).Y
+    COORDINATES_WITH_COLORS.CLOSE_BUTTON(width, height).X,
+    COORDINATES_WITH_COLORS.CLOSE_BUTTON(width, height).Y
   );
   console.log("Processing image");
-  processImage(mainWindow);
+  processImage(mainWindow, unavailableCamerasIndex);
   console.log("Sending processingStatus event");
   mainWindow.webContents.send(EVENTS.PROCESSING_STATUS, true);
 }
