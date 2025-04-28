@@ -230,7 +230,7 @@ export const processImage = async (
         }
 
         const hasDisease = apiResponse.classification_results.some(
-          (result) => result.label !== "healthy"
+          (result) => result.score > 0.8 // 80% confidence
         );
 
         const diseaseTypes = apiResponse.classification_results.filter(
@@ -256,32 +256,31 @@ export const processImage = async (
             }
        */
 
-        let cameraToFolderIndexMap = Array.from(
-          {
-            length: 16,
-          },
+        const availableCameraIndex = Array.from(
+          { length: 16 },
           (_, i) => i
-        )
-          .reverse()
-          .map((val, index) => ({
-            camIndex: val,
-            folderIndex: index,
-          }));
+        ).filter((index) => !unavailableCamerasIndex.includes(index));
 
-        console.log("Invalid camera indexes:", unavailableCamerasIndex);
+        console.log("Available camera indexes:", availableCameraIndex);
 
-        for (const invalidCamIndex of unavailableCamerasIndex) {
-          const withoutInvalid = cameraToFolderIndexMap.filter(
-            (item) => invalidCamIndex !== item.camIndex
-          );
+        const cameraToFolderIndexMap = subfolders.map((_, index, array) => ({
+          camIndex: availableCameraIndex[index],
+          folderIndex: array.length - (index + 1),
+        }));
 
-          const final = withoutInvalid.map((item, idx) => ({
-            ...item,
-            folderIndex: idx,
-          }));
+        console.log("Camera to folder index map:", cameraToFolderIndexMap);
+        // for (const invalidCamIndex of unavailableCamerasIndex) {
+        //   const withoutInvalid = cameraToFolderIndexMap.filter(
+        //     (item) => invalidCamIndex !== item.camIndex
+        //   );
 
-          cameraToFolderIndexMap = final;
-        }
+        //   const final = withoutInvalid.map((item, idx) => ({
+        //     ...item,
+        //     folderIndex: idx,
+        //   }));
+
+        //   cameraToFolderIndexMap = final;
+        // }
 
         console.log("Camera to folder index map:", cameraToFolderIndexMap);
 

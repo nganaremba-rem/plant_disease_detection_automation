@@ -388,6 +388,9 @@ async function startMonitoring(mainWindow: BrowserWindow) {
         COORDINATES_WITH_COLORS.CLOSE_CAPTURE_PREVIEW_BUTTON(width, height).X,
         COORDINATES_WITH_COLORS.CLOSE_CAPTURE_PREVIEW_BUTTON(width, height).Y
       );
+    } else {
+      console.log(`Camera ${index + 1} video is not on`);
+      unavailableCamerasIndex.push(index);
     }
   }
 
@@ -399,6 +402,7 @@ async function startMonitoring(mainWindow: BrowserWindow) {
 
   // close the app
   console.log("Closing the app");
+  // TODO: turn this on when the app is ready
   clickOnScreen(
     COORDINATES_WITH_COLORS.CLOSE_BUTTON(width, height).X,
     COORDINATES_WITH_COLORS.CLOSE_BUTTON(width, height).Y
