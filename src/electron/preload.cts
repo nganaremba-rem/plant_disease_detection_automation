@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, ipcMain } from "electron";
+import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld("versions", {
   node: () => process.versions.node,
@@ -6,11 +6,19 @@ contextBridge.exposeInMainWorld("versions", {
 } satisfies Window["versions"]);
 
 contextBridge.exposeInMainWorld("electron", {
-  startMonitoring: (cronTimes: string[]) => {
-    ipcRenderer.invoke("startMonitoring", cronTimes);
+  startMonitoring: async (cronTimes: string[]) => {
+    try {
+      await ipcRenderer.invoke("startMonitoring", cronTimes);
+    } catch (error) {
+      console.error("Error starting monitoring:", error);
+    }
   },
-  stopMonitoring: () => {
-    ipcRenderer.invoke("stopMonitoring");
+  stopMonitoring: async () => {
+    try {
+      await ipcRenderer.invoke("stopMonitoring");
+    } catch (error) {
+      console.error("Error stopping monitoring:", error);
+    }
   },
   stoppedMonitoring: (callback: () => void) => {
     ipcRenderer.on("stoppedMonitoring", () => callback());
@@ -25,8 +33,12 @@ contextBridge.exposeInMainWorld("electron", {
   timeScheduled: (callback: (time: string[]) => void) => {
     ipcRenderer.on("timeScheduled", (_, time) => callback(time));
   },
-  openExternal: (url: string) => {
-    ipcRenderer.invoke("openExternal", url);
+  openExternal: async (url: string) => {
+    try {
+      await ipcRenderer.invoke("openExternal", url);
+    } catch (error) {
+      console.error("Error opening external URL:", error);
+    }
   },
   errorReport: (callback: (error: string) => void) => {
     ipcRenderer.on("errorReport", (_, error) => callback(error));

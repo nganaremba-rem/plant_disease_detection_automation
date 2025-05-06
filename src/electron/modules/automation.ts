@@ -161,7 +161,8 @@ export const getLatestBmp = async (dir: string) => {
 };
 
 export const uploadImage = async (
-  imagePath: string
+  imagePath: string,
+  mainWindow: BrowserWindow
 ): Promise<ClassificationResults | undefined> => {
   try {
     if (!imagePath) {
@@ -195,6 +196,15 @@ export const uploadImage = async (
       console.error("API Error Data:", error.response.data);
       console.error("API Error Status:", error.response.status);
     }
+
+    mainWindow.webContents.send(
+      EVENTS.ERROR,
+      // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+      error?.errors?.map((e: any) => e.message).join("\n") ||
+        error?.message ||
+        "Unknown error"
+    );
+    mainWindow.webContents.send(EVENTS.PROCESSING_STATUS, false);
   }
 };
 
@@ -221,7 +231,7 @@ export const processImage = async (
       const latestBmp = await getLatestBmp(subfolder);
       if (latestBmp) {
         console.log(`Latest BMP in ${subfolder}: ${latestBmp}`);
-        const apiResponse = await uploadImage(latestBmp);
+        const apiResponse = await uploadImage(latestBmp, mainWindow);
         console.log("API Response:", apiResponse);
 
         if (!apiResponse) {

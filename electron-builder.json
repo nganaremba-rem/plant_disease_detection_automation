@@ -2,10 +2,10 @@
   "appId": "com.plant_disease_automation",
   "productName": "Plant Disease Automation",
   "files": ["dist-electron", "dist-react"],
-  "extraResources": ["dist-electron/preload.cjs"],
-  "icon": "public/icon.png",
+  "extraResources": ["dist-electron/preload.cjs", "dist-react/icon.png"],
+  "icon": "dist-react/icon.png",
   "win": {
-    "target": ["portable", "msi"]
+    "target": ["portable"]
   },
   "mac": {
     "target": ["dmg"]
